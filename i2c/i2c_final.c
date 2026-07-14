@@ -14,7 +14,7 @@ static void start_condition(struct i2c_bus_details *bus)
         gpio_output_state(bus->sda_port, bus->sda_pin, LOW);
 }
 
-static unsigned char i2c_send(unsigned char *data_buffer, unsigned short byte_count, 
+static char i2c_send(unsigned char *data_buffer, unsigned short byte_count, 
 		struct i2c_bus_details *i2c_bus_details,
 		unsigned char delay)
 {
@@ -58,7 +58,7 @@ static unsigned char i2c_send(unsigned char *data_buffer, unsigned short byte_co
 	return -FAILURE;
 }
 
-static unsigned char i2c_receive(unsigned char *data_buffer,
+static char i2c_receive(unsigned char *data_buffer,
 		unsigned short byte_count,
 		struct i2c_bus_details *i2c_bus_details,
 		unsigned char delay)
@@ -109,12 +109,12 @@ static void stop_condition(struct i2c_bus_details *i2c_bus_details, unsigned cha
 void *i2c_bus_configure(struct i2c_bus_details *i2c_bus_details)
 {
 	if (!i2c_bus_details)
-		return -INVARG;
+		return NULL;
 
 	struct i2c_bus_details *new_bus = malloc(sizeof(struct i2c_bus_details));
 	
 	if (!new_bus)
-		return -FAILURE;
+		return NULL;
 
 	*new_bus = *i2c_bus_details;
 			
@@ -143,7 +143,7 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 
 	unsigned char result = 0, target_addr;
 	unsigned char delay = ((1.0 / (KHZ(i2c_target_details->mode) * 2)) * 1000000);
-	struct i2c_bus_details *bus = (i2c_list + (i2c_target_details->i2c_bus));
+	struct i2c_bus_details *bus = i2c_target_details->i2c_bus;
 
 	/* start condition */
 	start_condition(bus);

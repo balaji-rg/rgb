@@ -1,6 +1,6 @@
-#include "stm32_f446re.h"
 #ifndef I2C_H
 #define I2C_H
+#include "stm32_f446re.h"
 
 #define I2C_WRITE	0
 #define I2C_READ	1
@@ -35,7 +35,7 @@ struct i2c_transfer_details {
 struct i2c_target_details {
 	unsigned char target_address;
 	unsigned char mode;                         /* standard mode - 100khz */
-        unsigned char i2c_bus;
+        void *i2c_bus;
 };
 
 /* api for user */
