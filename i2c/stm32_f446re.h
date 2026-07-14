@@ -31,7 +31,7 @@ enum op_state{
 };
 
 void gpio_mode(unsigned char, unsigned char, enum mode);
-void gpio_type(unsigned char, unsigned char, enum type);
+void gpio_output_type(unsigned char, unsigned char, enum type);
 void gpio_pull_state(unsigned char, unsigned char, enum pull_state);
 void gpio_output_state(unsigned char, unsigned char, enum op_state);
 void gpio_pin_toggle(unsigned char, unsigned char);

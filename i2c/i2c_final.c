@@ -4,8 +4,8 @@
 
 #define MSB 7
 #define ONE_BYTE 8
-#define CURRENT_BIT(data)  ((data >> (MSB - (total_bits_sent % ONE_BYTE))) & 1)
-#define RECEIVED_BIT(bit)  (bit << (MSB - (total_bits_received % ONE_BYTE)))
+#define CURRENT_BIT(data, bits_sent)  (((data) >> (MSB - ((bits_sent) % ONE_BYTE))) & 1)
+#define RECEIVED_BIT(bit, bits_received)  ((bit) << (MSB - ((bits_receive) % ONE_BYTE)))
 
 static void start_condition(struct i2c_bus_details *bus)
 {
@@ -14,9 +14,9 @@ static void start_condition(struct i2c_bus_details *bus)
         gpio_output_state(bus->sda_port, bus->sda_pin, LOW);
 }
 
-static char i2c_send(unsigned char *data_buffer, unsigned short byte_count, 
-		struct i2c_bus_details *i2c_bus_details,
-		unsigned char delay)
+static char i2c_send(const unsigned char *data_buffer, const unsigned short byte_count, 
+		const struct i2c_bus_details *i2c_bus_details,
+		const unsigned char delay)
 {
 	unsigned short total_bits_sent = 0;
 
@@ -24,7 +24,7 @@ static char i2c_send(unsigned char *data_buffer, unsigned short byte_count,
 
 		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, LOW);
 		k_usleep(delay);
-		gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_port, CURRENT_BIT(*data_buffer));
+		gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_port, CURRENT_BIT(*data_buffer, total_bits_sent));
 		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
 		k_usleep(delay);
 
@@ -42,26 +42,29 @@ static char i2c_send(unsigned char *data_buffer, unsigned short byte_count,
 			if (total_bits_sent == byte_count * ONE_BYTE) {
 				return SUCCESS;
 			}
+			
+			data_buffer++;
 
 			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, LOW);
 			k_usleep(delay);
-			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_port, CURRENT_BIT(*data_buffer));
+			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_port, CURRENT_BIT(*data_buffer, total_bits_sent));
 			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
 			k_usleep(delay);
+			
+			total_bits_sent++;
 
+			/* check for clock stretching */
 			while(!gpio_read(i2c_bus_details->scl_port, i2c_bus_details->scl_pin));
 
-			data_buffer++;
-			total_bits_sent++;
 		}
 	}
 	return -FAILURE;
 }
 
 static char i2c_receive(unsigned char *data_buffer,
-		unsigned short byte_count,
-		struct i2c_bus_details *i2c_bus_details,
-		unsigned char delay)
+		const unsigned short byte_count,
+		const struct i2c_bus_details *i2c_bus_details,
+		const unsigned char delay)
 {
  	unsigned short total_bits_received = 0;
 
@@ -71,7 +74,7 @@ static char i2c_receive(unsigned char *data_buffer,
 		k_usleep(delay);
 		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
 		k_usleep(delay);
-		*data_buffer |= RECEIVED_BIT(gpio_read(i2c_bus_details->sda_port, i2c_bus_details->sda_pin));
+		*data_buffer |= RECEIVED_BIT(gpio_read(i2c_bus_details->sda_port, i2c_bus_details->sda_pin), total_bits_received);
 		
 		if (!(++total_bits_received % ONE_BYTE)) {   
 			
@@ -118,8 +121,8 @@ void *i2c_bus_configure(struct i2c_bus_details *i2c_bus_details)
 
 	*new_bus = *i2c_bus_details;
 			
-	gpio_type(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, OPEN_DRAIN);
-	gpio_type(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, OPEN_DRAIN);
+	gpio_output_type(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, OPEN_DRAIN);
+	gpio_output_type(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, OPEN_DRAIN);
 
 	gpio_pull_state(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, PULL_UP);
 	gpio_pull_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, PULL_UP);
@@ -137,7 +140,10 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 		struct i2c_transfer_details *i2c_write_details,
 		struct i2c_transfer_details *i2c_read_details)
 {
-	if (!i2c_target_details || i2c_target_details->target_address > 127) {
+	if (!i2c_target_details ||
+	    i2c_target_details->i2c_bus ||
+            i2c_target_details->target_address > 127) {
+	
 		return -INVARG;
 	}
 
@@ -162,7 +168,7 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 			goto stop;
 		}
 		
-		if (!i2c_write_details->data_buffer) {
+		if (i2c_write_details->data_buffer) {
 			result = i2c_send(i2c_write_details->data_buffer,
 					i2c_write_details->byte_count, bus, delay);
 		}
@@ -181,7 +187,7 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 			goto stop;
 		}
 		
-		if (!i2c_read_details->data_buffer) {
+		if (i2c_read_details->data_buffer) {
 			result = i2c_receive(i2c_read_details->data_buffer,
 					i2c_read_details->byte_count,  bus, delay);
 		}
