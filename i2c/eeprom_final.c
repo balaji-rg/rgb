@@ -4,12 +4,12 @@
 #define EEPROM_ADDRESS 0x50
 #define NULL ((void *)0)
 
-unsigned char eeprom_write(void *bus_id, const unsigned char *data, unsigned char data_word_address, 
+char eeprom_write(void *bus_id, const unsigned char *data, unsigned char data_word_address, 
 			  const struct eeprom_operation_details *eeprom_operation_details)
 {
-	
-	if  (!data || !eeprom_operation_details || !bus_id)
+	if  (!data || !eeprom_operation_details || !bus_id) {
 		return -INVARG;
+	}
 	
 	struct i2c_transfer_details transfer_details = {
 		.byte_count = (eeprom_operation_details->total_bytes + 1)
@@ -18,7 +18,7 @@ unsigned char eeprom_write(void *bus_id, const unsigned char *data, unsigned cha
 	struct i2c_target_details target_details = {
 		.target_address = EEPROM_ADDRESS,
 		.mode = STANDARD_MODE,
-		.i2c_bus = bus_id
+		.i2c_bus = (struct i2c_bus_details *)bus_id
 	};
 	
 	unsigned char *buffer = malloc(eeprom_operation_details->total_bytes + 1);
@@ -34,17 +34,19 @@ unsigned char eeprom_write(void *bus_id, const unsigned char *data, unsigned cha
 	
 	transfer_details.data_buffer = buffer;
 	
-	if (i2c_transfer(&target_details, &transfer_details, NULL))
+	if (i2c_transfer(&target_details, &transfer_details, NULL)) {
 		return -FAILURE;
+	}
 
 	return SUCCESS;
 }
 
-unsigned char eeprom_erase(void *bus_id, unsigned char data_word_address, 
+char eeprom_erase(void *bus_id, unsigned char data_word_address, 
 				const struct eeprom_operation_details *eeprom_operation_details)
 {
-	if (!eeprom_operation_details || !bus_id)
+	if (!eeprom_operation_details || !bus_id) {
 		return -INVARG;
+	}
 	
 	struct i2c_transfer_details transfer_details = {
 		.byte_count = eeprom_operation_details->total_bytes
@@ -53,7 +55,7 @@ unsigned char eeprom_erase(void *bus_id, unsigned char data_word_address,
 	struct i2c_target_details target_details = {
 		.target_address = EEPROM_ADDRESS,
 		.mode = STANDARD_MODE,
-		.i2c_bus = bus_id
+		.i2c_bus = (struct i2c_bus_details *)bus_id
 	};
 
 	unsigned char *buffer = malloc(eeprom_operation_details->total_bytes + 1);
@@ -69,25 +71,27 @@ unsigned char eeprom_erase(void *bus_id, unsigned char data_word_address,
 	
 	transfer_details.data_buffer = buffer;
 	
-	if (i2c_transfer(&target_details, &transfer_details, NULL))
+	if (i2c_transfer(&target_details, &transfer_details, NULL)) {
 		return -FAILURE;
+	}
 
 	return SUCCESS;
 }
 
-unsigned char eeprom_read(void *bus_id , unsigned char *data, unsigned char data_word_address,
+char eeprom_read(void *bus_id , unsigned char *data, unsigned char data_word_address,
 			  const struct eeprom_operation_details *eeprom_operation_details)
 {
-	if (!data || !eeprom_operation_details || !bus_id)
+	if (!data || !eeprom_operation_details || !bus_id) {
 		return -INVARG;
+	}
 
-	struct i2c_target_details t1 = {
+	struct i2c_target_details target_details = {
 		.target_address = EEPROM_ADDRESS,
 		.mode = STANDARD_MODE,
-		.i2c_bus = bus_id
+		.i2c_bus = (struct i2c_bus_details *)bus_id
 	};
 
-	struct i2c_transfer_details d1 = {
+	struct i2c_transfer_details transfer_details = {
 		.byte_count = eeprom_operation_details->total_bytes,
 		.data_buffer = data,
 	};
@@ -99,11 +103,14 @@ unsigned char eeprom_read(void *bus_id , unsigned char *data, unsigned char data
 			.data_buffer = &data_word_address,
 		};
 			
-		if(i2c_transfer(&t1, &data_addr, &d1))
+		if(i2c_transfer(&target_details, &data_addr, &transfer_details)) {
 			return -FAILURE;
+		}
+
 	} else {
-		if (i2c_transfer(&t1, NULL, &d1))
+		if (i2c_transfer(&target_details, NULL, &transfer_details)) {
 			return -FAILURE;
+		}
 	}
 	
 	return SUCCESS;

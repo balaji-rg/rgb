@@ -31,13 +31,13 @@ struct eeprom_operation_details {
 	unsigned short total_bytes;
 };
 
-unsigned char eeprom_write(void *bus_id, const unsigned char *data, unsigned char data_word_address,
+char eeprom_write(void *bus_id, const unsigned char *data, unsigned char data_word_address,
 		           const struct eeprom_operation_details *eeprom_operation_details);
 
-unsigned char eeprom_read(void *bus_id, unsigned char *data, unsigned char data_word_address,
+char eeprom_read(void *bus_id, unsigned char *data, unsigned char data_word_address,
 			  const struct eeprom_operation_details *eeprom_operation_details);
 
-unsigned char eeprom_erase(void *bus_id, unsigned char data_word_address,
+char eeprom_erase(void *bus_id, unsigned char data_word_address,
 			   const struct eeprom_operation_details *eeprom_operation_details);
 
 #endif

@@ -7,7 +7,7 @@
 int main()
 {
 	
-	NEW_BUS_INIT(bus1, SDA_PIN, PORT_A, SCL_PIN, PORT_A);
+	NEW_BUS_INIT(bus1, PORT_A, SDA_PIN, PORT_A, SCL_PIN);
 
         void *bus_id = i2c_bus_configure(&bus1);
 
@@ -27,22 +27,22 @@ int main()
         unsigned char arr[16] = {0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f, 0x7a, 0x7b, 0x7c, 0x7d};
 
         printf("Writing the values \n");
-        if (eeprom_write(&bus_id, arr, data_word_address, &write_details))
+        if (eeprom_write(bus_id, arr, data_word_address, &write_details))
                 printf("failure");
 
 	printf("Reading the values after writing\n");
-        if (eeprom_read(&bus_id, arr1, data_word_address, &read_details))
+        if (eeprom_read(bus_id, arr1, data_word_address, &read_details))
                 printf("failure");
 
         for (unsigned char index = 0; index < 16; index++)
                 printf("%x \n", arr1[index]);
 
         printf("Erasing the values \n");
-        if(eeprom_erase(&bus_id, data_word_address, &write_details))
+        if(eeprom_erase(bus_id, data_word_address, &write_details))
                 printf("failure");
 
         printf("Reading the values after erasing \n");
-        if (eeprom_read(&bus_id, arr1, data_word_address, &read_details))
+        if (eeprom_read(bus_id, arr1, data_word_address, &read_details))
                 printf("failure");
 
         for (unsigned char index = 0; index < 16; index++)

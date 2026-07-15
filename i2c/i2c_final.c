@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "i2c_final.h"
 
-
 #define MSB 7
 #define ONE_BYTE 8
 #define CURRENT_BIT(data, bits_sent)  (((data) >> (MSB - ((bits_sent) % ONE_BYTE))) & 1)
@@ -25,15 +24,15 @@ static char i2c_send(const unsigned char *data_buffer, const unsigned short byte
 
 		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, LOW);
 		k_usleep(delay);
-		gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_port, CURRENT_BIT(*data_buffer, total_bits_sent));
-		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
+		gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, CURRENT_BIT(*data_buffer, total_bits_sent));
+		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, HIGH);
 		k_usleep(delay);
 
 		if (!(++total_bits_sent % ONE_BYTE)) {   
 			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, LOW);    /* ack read */
 			k_usleep(delay);
-			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_port, HIGH);  /* release sda */
-			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
+			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, HIGH);  /* release sda */
+			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, HIGH);
 			k_usleep(delay);
 			
 			if (gpio_read(i2c_bus_details->sda_port, i2c_bus_details->sda_pin)) {
@@ -48,8 +47,8 @@ static char i2c_send(const unsigned char *data_buffer, const unsigned short byte
 
 			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, LOW);
 			k_usleep(delay);
-			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_port, CURRENT_BIT(*data_buffer, total_bits_sent));
-			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
+			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, CURRENT_BIT(*data_buffer, total_bits_sent));
+			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, HIGH);
 			k_usleep(delay);
 			
 			total_bits_sent++;
@@ -57,7 +56,7 @@ static char i2c_send(const unsigned char *data_buffer, const unsigned short byte
 			/* check for clock stretching */
 			while(!gpio_read(i2c_bus_details->scl_port, i2c_bus_details->scl_pin));
 
-		}
+		}	
 	}
 	return -FAILURE;
 }
@@ -73,7 +72,7 @@ static char i2c_receive(unsigned char *data_buffer,
 	
 		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, LOW);
 		k_usleep(delay);
-		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
+		gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, HIGH);
 		k_usleep(delay);
 		*data_buffer |= RECEIVED_BIT(gpio_read(i2c_bus_details->sda_port, i2c_bus_details->sda_pin), total_bits_received);
 		
@@ -83,7 +82,7 @@ static char i2c_receive(unsigned char *data_buffer,
 			k_usleep(delay);
 			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, 
 							total_bits_received == (byte_count * ONE_BYTE));
-			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_port, HIGH);
+			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, HIGH);
 			k_usleep(delay);
 		
 			/* release sda after nack */
@@ -142,9 +141,8 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 		struct i2c_transfer_details *i2c_read_details)
 {
 	if (!i2c_target_details ||
-	    i2c_target_details->i2c_bus ||
-            i2c_target_details->target_address > 127) {
-	
+	    !(i2c_target_details->i2c_bus) ||
+            i2c_target_details->target_address > 0x7f) {
 		return -INVARG;
 	}
 
