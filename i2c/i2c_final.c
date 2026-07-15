@@ -111,10 +111,12 @@ static void stop_condition(struct i2c_bus_details *i2c_bus_details, unsigned cha
 
 void *i2c_bus_configure(struct i2c_bus_details *i2c_bus_details)
 {
+	struct i2c_bus_details *new_bus;
+	
 	if (!i2c_bus_details)
 		return NULL;
 
-	struct i2c_bus_details *new_bus = malloc(sizeof(struct i2c_bus_details));
+	new_bus = malloc(sizeof(struct i2c_bus_details));
 	
 	if (!new_bus)
 		return NULL;
@@ -140,15 +142,19 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 		struct i2c_transfer_details *i2c_write_details,
 		struct i2c_transfer_details *i2c_read_details)
 {
+	unsigned char result;
+	unsigned char target_addr;
+	unsigned char delay;
+	struct i2c_bus_details *bus;
+
 	if (!i2c_target_details ||
 	    !(i2c_target_details->i2c_bus) ||
             i2c_target_details->target_address > 0x7f) {
 		return -INVARG;
 	}
 
-	unsigned char result = 0, target_addr;
-	unsigned char delay = ((1.0 / (KHZ(i2c_target_details->mode) * 2)) * 1000000);
-	struct i2c_bus_details *bus = i2c_target_details->i2c_bus;
+	delay = ((1.0 / (KHZ(i2c_target_details->mode) * 2)) * 1000000);
+	bus = i2c_target_details->i2c_bus;
 
 	/* start condition */
 	start_condition(bus);
@@ -167,10 +173,12 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 			goto stop;
 		}
 		
-		if (i2c_write_details->data_buffer) {
-			result = i2c_send(i2c_write_details->data_buffer,
-					i2c_write_details->byte_count, bus, delay);
+		if (!i2c_write_details->data_buffer) {
+			return -INVARG;
 		}
+		
+		result = i2c_send(i2c_write_details->data_buffer,
+					i2c_write_details->byte_count, bus, delay);	
 	}
 
 	if (i2c_read_details) {
@@ -186,10 +194,12 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 			goto stop;
 		}
 		
-		if (i2c_read_details->data_buffer) {
-			result = i2c_receive(i2c_read_details->data_buffer,
-					i2c_read_details->byte_count,  bus, delay);
+		if (!i2c_read_details->data_buffer) {
+			return -INVARG;
 		}
+
+		result = i2c_receive(i2c_read_details->data_buffer,
+					i2c_read_details->byte_count,  bus, delay);
 	}
 stop:
 	stop_condition(bus,delay);
