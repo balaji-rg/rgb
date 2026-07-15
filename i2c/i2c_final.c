@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include "i2c_final.h"
 
+
 #define MSB 7
 #define ONE_BYTE 8
 #define CURRENT_BIT(data, bits_sent)  (((data) >> (MSB - ((bits_sent) % ONE_BYTE))) & 1)
-#define RECEIVED_BIT(bit, bits_received)  ((bit) << (MSB - ((bits_receive) % ONE_BYTE)))
+#define RECEIVED_BIT(bit, bits_received)  ((bit) << (MSB - ((bits_received) % ONE_BYTE)))
 
 static void start_condition(struct i2c_bus_details *bus)
 {

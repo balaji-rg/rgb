@@ -2,8 +2,8 @@
 #define I2C_H
 #include "stm32_f446re.h"
 
-#define I2C_WRITE	0
-#define I2C_READ	1
+#define I2C_WRITE 0
+#define I2C_READ  1
 
 #define SUCCESS 0
 #define FAILURE 1
