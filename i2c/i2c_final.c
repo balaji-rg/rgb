@@ -7,11 +7,12 @@
 #define CURRENT_BIT(data, bits_sent)  (((data) >> (MSB - ((bits_sent) % ONE_BYTE))) & 1)
 #define RECEIVED_BIT(bit, bits_received)  ((bit) << (MSB - ((bits_received) % ONE_BYTE)))
 
-static void start_condition(struct i2c_bus_details *bus)
+static void start_condition(struct i2c_bus_details *bus, unsigned char delay)
 {
 	gpio_output_state(bus->sda_port, bus->sda_pin, HIGH);
         gpio_output_state(bus->scl_port, bus->scl_pin, HIGH);
         gpio_output_state(bus->sda_port, bus->sda_pin, LOW);
+	k_usleep(delay);
 }
 
 static char i2c_send(const unsigned char *data_buffer, const unsigned short byte_count, 
@@ -157,7 +158,7 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 	bus = i2c_target_details->i2c_bus;
 
 	/* start condition */
-	start_condition(bus);
+	start_condition(bus, delay);
 
 	if (!i2c_write_details && !i2c_read_details) {
 		target_addr = ((i2c_target_details->target_address << 1) | I2C_WRITE);
@@ -184,7 +185,7 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 	if (i2c_read_details) {
 
 		if (i2c_write_details) {
-			start_condition(bus);
+			start_condition(bus, delay);
 		}
 
 		target_addr = ((i2c_target_details->target_address << 1) | I2C_READ);
