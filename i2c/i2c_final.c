@@ -68,6 +68,7 @@ static char i2c_receive(unsigned char *data_buffer,
 		const unsigned char delay)
 {
  	unsigned short total_bits_received = 0;
+	*data_buffer = 0;
 
 	while (total_bits_received < byte_count * ONE_BYTE) {
 	
@@ -85,16 +86,21 @@ static char i2c_receive(unsigned char *data_buffer,
 							total_bits_received == (byte_count * ONE_BYTE));
 			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, HIGH);
 			k_usleep(delay);
-		
+			
+			if (total_bits_received == byte_count * ONE_BYTE) {
+				return SUCCESS;
+			}
+
 			/* release sda after nack */
 			gpio_output_state(i2c_bus_details->scl_port, i2c_bus_details->scl_pin, LOW);
 			k_usleep(delay);
 			gpio_output_state(i2c_bus_details->sda_port, i2c_bus_details->sda_pin, HIGH);
 
 			data_buffer++;
+			*data_buffer = 0;
 		}
 	}
-	return SUCCESS;
+	return -FAILURE;
 }
 
 static void stop_condition(struct i2c_bus_details *i2c_bus_details, unsigned char delay)
@@ -166,7 +172,7 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 		goto stop;
 	}
 
-	if (i2c_write_details) {
+	if (i2c_write_details && i2c_write_details->byte_count) {
 		target_addr = ((i2c_target_details->target_address << 1) | I2C_WRITE);
 		result = i2c_send(&target_addr, 1, bus, delay);
 		
@@ -182,7 +188,7 @@ char i2c_transfer(struct i2c_target_details *i2c_target_details,
 					i2c_write_details->byte_count, bus, delay);	
 	}
 
-	if (i2c_read_details) {
+	if (i2c_read_details && i2c_read_details->byte_count) {
 
 		if (i2c_write_details) {
 			start_condition(bus, delay);
